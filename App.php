@@ -63,9 +63,14 @@ class App extends Base {
         }
         if(APP_NAME == 'Web')
         {
-        	runaction('AppBase', 'deal');
-        }{
-        	runaction(MODULE_NAME, ACTION_NAME);
+        	if(class_exists(ucwords(MODULE_NAME). 'Action'))
+        	{
+        		runaction(MODULE_NAME, ACTION_NAME);
+        	}else{
+        		//rundefault
+        		runaction('AppBase', 'deal');
+        	}
+        	
         }
 	}
 	
