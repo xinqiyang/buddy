@@ -1,4 +1,5 @@
 <?php
+
 // +----------------------------------------------------------------------
 // | Buddy Framework 
 // +----------------------------------------------------------------------
@@ -12,27 +13,49 @@
  * Buddy Loader 
  * Load all scripts of Buddy
  */
-if (!defined('APP_NAME')) {
-    //define app root
-    define('APP_NAME', basename(dirname($_SERVER['SCRIPT_FILENAME'])));
+if (!defined('APP_NAME') || !defined('BUDDY_PATH') || !defined('PUB_MODE') || !defined('CONF_PATH')) {
+    exit("APP_NAME,BUDDY_PATH,PUB_MODE,APP_PATH,ACTION_PATH,CONF_PATH  MUST DEFINE,PLEASE CHECK Public/index.php \n");
 }
-
+//设置内部的编码为UTF-8 长度使用mb_strlen来做
+mb_internal_encoding("UTF-8");
 //load basic functions
-require BUDDY_PATH . '/Functions.php';
+require BUDDY_PATH . DIRECTORY_SEPARATOR . 'Functions.php';
 
-//define API path
-define("API_PATH", dirname(BUDDY_PATH).'/API/');
+//define Service path
+define("SERVICE_PATH", dirname(dirname(CONF_PATH)) . DIRECTORY_SEPARATOR . 'Service');
+define("LOGIC_PATH", dirname(dirname(CONF_PATH)) . DIRECTORY_SEPARATOR . 'Logic');
 
+//load global path config
+C(include 'Global.php');
 //load configuration for app
-if (is_file(CONF_PATH . '/load.conf.php')) {
-    C(include CONF_PATH . '/load.conf.php');
+if (function_exists('apc_fetch')) {
+    $config = apc_fetch('BUDDYCONFIG');
+    if (!empty($config)) {
+        C($config);
+    } else {
+        if (is_file(CONF_PATH . DIRECTORY_SEPARATOR . 'load.conf.php')) {
+            $config = include(CONF_PATH . DIRECTORY_SEPARATOR . 'load.conf.php');
+            apc_store('BUDDYCONFIG', $config, 0);
+            C($config);
+        } else {
+            exit("FATAL:Load configuratin file error,please check!");
+        }
+    }
 } else {
-	throw new Exception("Load configuratin file error,please check!",0);
-    //exit('Load configuratin file error,please check!\n');
+    if (is_file(CONF_PATH . DIRECTORY_SEPARATOR . 'load.conf.php')) {
+        C(include(CONF_PATH . DIRECTORY_SEPARATOR . 'load.conf.php'));
+    } else {
+        exit("FATAL:Load configuratin file error,please check!");
+    }
 }
 
 //load core class
-$list = include BUDDY_PATH . '/Core.php';
+$list = include BUDDY_PATH . DIRECTORY_SEPARATOR . 'Core.php';
 foreach ($list as $key => $file) {
     require_cache($file);
 }
+//if Pub mode is Web then load Router 
+if (defined("PUB_MODE") && PUB_MODE == 'WEB' && APP_NAME !== "Api") {
+    require_cache(BUDDY_PATH . DIRECTORY_SEPARATOR . 'Router.php');
+}
+

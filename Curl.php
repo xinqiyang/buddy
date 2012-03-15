@@ -17,32 +17,29 @@
 class Curl
 {
     /**
-     * 使用CURL获取页面信息
-     * @param string $url url地址
+     * use curl to get 
+     * @param string $url url
      */
     public static function get($url, $header=0)
     {
-        // 初始化一个 cURL 对象
         $curl = curl_init();
-        // 设置你需要抓取的URL
         curl_setopt($curl, CURLOPT_URL, $url);
-        // 设置header
+        //set header of the page
         curl_setopt($curl, CURLOPT_HEADER, $header);
         //set time out seconds
         curl_setopt($curl,CURLOPT_TIMEOUT,4);
-        // 设置cURL 参数，要求结果保存到字符串中还是输出到屏幕上。
+        // set curl params
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-        // 运行cURL，请求网页
+        //get data
         $data = curl_exec($curl);
-        // 关闭URL请求
         curl_close($curl);
         return $data;
     }
     
     /**
-     * 提交数据到某个地址，并返回结果
-     * @param string $url post的action地址
-     * @param array $param 需要提交的参数数组 key=>value
+     * post to address then display result
+     * @param string $url post url
+     * @param array $param params array, key=>value
      */
     public static function post($url,$params)
     {
@@ -60,8 +57,6 @@ class Curl
         //curl_setopt($ch, CURLOPT_NOBODY, 0);
         curl_setopt($ch, CURLOPT_URL,$url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        //为了支持cookie
-        //curl_setopt($ch, CURLOPT_COOKIEJAR, 'cookie.txt');
         curl_setopt($ch, CURLOPT_POSTFIELDS, $post_data);
         $ret = @curl_exec($ch);
         curl_close ($ch);
@@ -69,13 +64,13 @@ class Curl
     }
 
 	/**
-	 * 支持cookie的post请求，不负责cookie文件的删除,需自行处理
+	 * post with cookie 
 	 *
-	 * @param $url 请求地址
-	 * @param $postfields  post参数 如：'username=test&password=123456'
-	 * @param $cookie_path cookie临时文件路径
-	 * @param $timeout 超时时间
-	 * @return 页面内容
+	 * @param $url  url
+	 * @param $postfields  post param 'username=test&password=123456'
+	 * @param $cookie_path cookie file path
+	 * @param $timeout timeout 
+	 * @return response of request
 	 **/
 	public static function postWithCookie($url, $postfields, $cookie_path, $timeout=60)
 	{
@@ -83,10 +78,11 @@ class Curl
 		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); 
 		curl_setopt($ch, CURLOPT_URL, $url); 
 		curl_setopt($ch, CURLOPT_POST, 1); 
-		curl_setopt($ch, CURLOPT_POSTFIELDS, $postfields); 
+		curl_setopt($ch, CURLOPT_POSTFIELDS, $postfields);
+		//need get cookie files 
 		if(is_file($cookie_path))
 		{
-			curl_setopt($ch, CURLOPT_COOKIEFILE, $cookie_path); //当前使用的cookie 
+			curl_setopt($ch, CURLOPT_COOKIEFILE, $cookie_path); 
 		}
 		curl_setopt($ch, CURLOPT_COOKIEJAR, $cookie_path); 
 		curl_setopt($ch, CURLOPT_HEADER, 1); 
@@ -94,17 +90,16 @@ class Curl
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); 
 		$content = curl_exec($ch); 
 		curl_close($ch); 
-
 		return  $content;
 	}
 
 	/**
-	 * 带有cookie的抓取，原cookie会被新的cookie替换
+	 * get with cookie
 	 *
-	 * @param $url 抓取地址url
-	 * @param $cookie_path cookie路径
-	 * @param $timeout 超时时间
-	 * $return 页面内容
+	 * @param $url url
+	 * @param $cookie_path cookie path
+	 * @param $timeout timeout
+	 * $return response 
 	 **/
 	public static function getWithCookie($url, $cookie_path, $timeout=60, $header=true)
 	{
@@ -112,9 +107,9 @@ class Curl
 		curl_setopt($ch, CURLOPT_URL, $url); 
 		if(is_file($cookie_path))
 		{
-			curl_setopt($ch, CURLOPT_COOKIEFILE, $cookie_path); //当前使用的cookie 
+			curl_setopt($ch, CURLOPT_COOKIEFILE, $cookie_path);  
 		}
-		curl_setopt($ch, CURLOPT_COOKIEJAR, $cookie_path); //新cookie 
+		curl_setopt($ch, CURLOPT_COOKIEJAR, $cookie_path); 
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); 
 		curl_setopt($ch, CURLOPT_HEADER, $header); 
 		curl_setopt($ch, CURLOPT_NOBODY, false); 
@@ -128,9 +123,9 @@ class Curl
     
 
     /**
-     * 提交数据到某个地址，并返回结果
-     * @param string $url post的action地址
-     * @param array $param 需要提交的参数数组 key=>value
+     * post then response by socket
+     * @param string $url post url
+     * @param array $param params key=>value
      */
     public static function sockPost($url,$params)
     {
@@ -174,9 +169,8 @@ class Curl
     }
     
     /**
-     * 获取多个接口数据
-     * 并向获取多个接口数据
-     * @param array $urlarr  url array
+     * get multi fetch
+     * @param array $urlarr  url array  array('url1'=>'','url2'=>'')
      */
 	public static function curlMultiFetch($urlarr=array()){
 	    $result=$res=$ch=array();
@@ -231,6 +225,5 @@ class Curl
 	    curl_multi_close($mh);
 	    return  $result;
 	}
-    
     
 }

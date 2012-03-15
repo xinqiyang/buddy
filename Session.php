@@ -12,6 +12,11 @@
 define("HTTP_SESSION_STARTED",      1);
 define("HTTP_SESSION_CONTINUED",    2);
 
+/**
+ * Session controller 
+ * @author xinqiyang
+ *
+ */
 class Session extends Base
 {
 

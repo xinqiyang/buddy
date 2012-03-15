@@ -1,6 +1,6 @@
 <?php
 // +----------------------------------------------------------------------
-// | Buddy Framework 
+// | Buddy Framework
 // +----------------------------------------------------------------------
 // | Copyright (c) 2011 http://buddy.woshimaijia.com All rights reserved.
 // +----------------------------------------------------------------------
@@ -11,107 +11,163 @@
 
 /**
  * APP Class
- * 
+ * DO APP init then run,the first step of the lifecycle
  * @author xinqiyang
  *
  */
 class App extends Base {
+	
 	/**
-	 * init App
-	 * 
+	 * init function of the beginning 
 	 */
 	public static function init()
 	{
 		set_error_handler(array('App', "appError"));
-        set_exception_handler(array('App', "appException"));
-        
-        if(function_exists('data_default_timezone_set'))
-        {
-        	date_default_timezone_set(C('default_timezone'));
+		set_exception_handler(array('App', "appException"));
+		//set timezone
+		if(function_exists('data_default_timezone_set'))
+		{
+			date_default_timezone_set(C('default_timezone'));
+		}
+		//set autoloader
+		if(function_exists('spl_autoload_register'))
+		{
+			spl_autoload_register(array('Base','autoload'));
+		}
+		 // Session initial lize
+		if(isset($_REQUEST[C("VAR_SESSION_ID")]))
+		{
+			session_id($_REQUEST[C("VAR_SESSION_ID")]);
+		}
+		
+        if(C('SESSION_AUTO_START')) 
+        { 
+			session_start();
         }
-        
-        if(function_exists('spl_autoload_register'))
-        {
-        	spl_autoload_register(array('Base','autoload'));
-        }
-        session_start();
-        //web use the dispatcher
-        if(PUB_MODE == 'WEB')
-        {
-        	//url router
-        	Router::dispatch();
-        	//TODO:check lang
-        	//var_dump(MODULE_NAME,ACTION_NAME);
-        	//TODO:check html cache
-        	
-        }else{
-        	//CLI MODE
-        	define('MODULE_NAME', isset($_SERVER['argv'][1]) ? strtolower($_SERVER['argv'][1]) : 'index');
-        	define('ACTION_NAME', isset($_SERVER['argv'][2]) ? strtolower($_SERVER['argv'][2]) : 'index');
-        }
-        return ;
+		//if is WEB PUB MODE do the dispatche from the request prams
+		if(PUB_MODE == 'WEB') //for web/wap/mis project
+		{
+			Router::dispatch();
+		}elseif(PUB_MODE == 'IO'){ //for api project
+			// DO IO ACTION
+			if(isset($_GET['m']) && isset($_GET['a'])){
+				define('MODULE_NAME',$_GET['m']);
+				define('ACTION_NAME',$_GET['a']);
+			}else{
+				define('MODULE_NAME','index');
+				define('ACTION_NAME','index');
+			}
+		}elseif(PUB_MODE == 'CLI'){ //for backend project
+			//CLI MODE
+			define('MODULE_NAME', isset($_SERVER['argv'][1]) ? strtolower($_SERVER['argv'][1]) : 'index');
+			define('ACTION_NAME', isset($_SERVER['argv'][2]) ? strtolower($_SERVER['argv'][2]) : 'index');
+		}
+		//check language
+		self::checkLanguage();
+		return ;
 	}
-	
+
 	/**
-	 * run action
-	 * Enter description here ...
+	 * execute
+	 * run module and action to do some things of you think
 	 */
 	public static function exec()
 	{
-		if(!preg_match('/^[A-Za-z_0-9]+$/',MODULE_NAME)){
-            throw_exception('_MODULE_NOT_EXIST_');
-        }
-        if(APP_NAME == 'Web')
-        {
-        	if(class_exists(ucwords(MODULE_NAME). 'Action'))
-        	{
-        		runaction(MODULE_NAME, ACTION_NAME);
-        	}else{
-        		//rundefault
-        		runaction('AppBase', 'deal');
-        	}
-        	
-        }
+		if(class_exists(ucwords(MODULE_NAME). 'Action'))
+		{
+			runaction(MODULE_NAME, ACTION_NAME);
+		}else{
+			//rundefault
+			runaction('AppBase', 'deal');
+		}
 	}
 	
-    public static function run() {
-        self::init();
-        self::exec();
-        //save Log
-        return;
-    }
-
-    /**
-     * Exception handle
-     * @param Exception $e
-     */
-    public static function appException($e) {
-        exit($e->__toString());
-    }
-
-    /**
-     * App Error
-     * @param string $errno
-     * @param string $errstr
-     * @param string $errfile
-     * @param string $errline
-     */
-    public static function appError($errno, $errstr, $errfile, $errline) {
-        switch ($errno) {
-            case E_ERROR:
-            case E_USER_ERROR:
-                $errorStr = "[$errno] $errstr " . basename($errfile) . " $errline Line.";
-                exit($errorStr);
-                break;
-            case E_STRICT:
-            case E_USER_WARNING:
-            case E_USER_NOTICE:
-            default:
-                $errorStr = "[$errno] $errstr " . basename($errfile) . " $errline Line.";
-                exit($errorStr);
-                //record to log
-                break;
+	/**
+	 * add check language method
+	 */
+	static private function checkLanguage() {
+        $langSet = C('DEFAULT_LANG');
+        //load language packet 
+        if (!C('LANG_SWITCH_ON')){
+        	var_dump('LANG_SWITCH_ON');
+            L(include BUDDY_PATH.'/Lang/'.$langSet.'.php');
+            return;
+        }
+        //enable lang auto detect 
+        if (C('LANG_AUTO_DETECT')){
+            if(isset($_GET[C('VAR_LANGUAGE')])){
+                $langSet = $_GET[C('VAR_LANGUAGE')];
+                //set buddy cookie
+                cookie('bd_language',$langSet,3600);
+            }elseif(cookie('bd_language')){
+                $langSet = cookie('bd_language');
+            }elseif(isset($_SERVER['HTTP_ACCEPT_LANGUAGE'])){
+                preg_match('/^([a-z\-]+)/i', $_SERVER['HTTP_ACCEPT_LANGUAGE'], $matches);
+                $langSet = $matches[1];
+                cookie('bd_language',$langSet,3600);
+            }
+            if(false === stripos(C('LANG_LIST'),$langSet)) {
+                $langSet = C('DEFAULT_LANG');
+            }
+        }
+        //define langset
+        define('LANG_SET',strtolower($langSet));
+        //load lang file
+        if(is_file(BUDDY_PATH.'/Lang/'.LANG_SET.'.php'))
+        {
+            L(include BUDDY_PATH.'/Lang/'.LANG_SET.'.php');
+        }
+        //load common lan file
+        if (defined('LANG_PATH') && is_file(LANG_PATH.DIRECTORY_SEPARATOR.LANG_SET.'/Common.php'))
+        {
+            L(include LANG_PATH.DIRECTORY_SEPARATOR.LANG_SET.'/Common.php');
         }
     }
+	
+	
+	/**
+	 * run
+	 */
+	public static function run() {
+		self::init();
+		//do log init
+		initLog();
+		self::exec();
+		return;
+	}
+
+	/**
+	 * Exception handle
+	 * @param Exception $e exception of the app
+	 */
+	public static function appException($e) {
+		exit($e->__toString());
+	}
+
+	/**
+	 * App Error
+	 * @param string $errno error number
+	 * @param string $errstr  error info
+	 * @param string $errfile  error file
+	 * @param string $errline  error line
+	 */
+	public static function appError($errno, $errstr, $errfile, $errline) {
+		switch ($errno) {
+			case E_ERROR:
+			case E_USER_ERROR:
+				$errorStr = "[$errno] $errstr " . basename($errfile) . " $errline Line.";
+				logNotice($errorStr);
+				exit($errorStr);
+				break;
+			case E_STRICT:
+			case E_USER_WARNING:
+			case E_USER_NOTICE:
+			default:
+				$errorStr = "[$errno] $errstr " . basename($errfile) . " $errline Line.";
+				logNotice($errorStr);
+				exit($errorStr);
+				break;
+		}
+	}
 
 }

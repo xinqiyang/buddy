@@ -1,32 +1,35 @@
 <?php
-/* 
- * //TEST
-$r = ub_log_init("/tmp", "test", 16, array("logid"=>12345 , "reqip"=>"210.23.55.33"), true);
+// +----------------------------------------------------------------------
+// | Buddy Framework 
+// +----------------------------------------------------------------------
+// | Copyright (c) 2011 http://buddy.woshimaijia.com All rights reserved.
+// +----------------------------------------------------------------------
+// | Licensed ( http://www.apache.org/licenses/LICENSE-2.0 )
+// +----------------------------------------------------------------------
+// | Author: xinqiyang <xinqiyang@gmail.com>
+// +----------------------------------------------------------------------
 
-//var_dump($__log);
-UB_LOG_FATAL("fatal %d  %s !!!", 1231324, "asdfasdfsf");
-UB_LOG_TRACE("fatal %d  %s !!!", 1231324, "asdfasdfsf");
-UB_LOG_DEBUG("fatal %d  %s !!!", 1231324, "asdfasdfsf");
-UB_LOG_WARNING("fatal %d  %s !!!", 1231324, "asdfasdfsf");
-UB_LOG_NOTICE("fatal %d  %s !!!", 1231324, "asdfasdfsf");
-UB_LOG_MONITOR("fatal %d  %s !!!", 1231324, "asdfasdfsf");
+/**
+ * buddy Log Class 
+ * 
+ * loginit("/tmp", "test", 16, array("uid"=>12345 , "reqip"=>"210.23.55.33"), true);
+ * 
+ * logFATAL("fatal %d  %s !!!", 1231324, "asdfasdfsf");
+ * logTRACE("fatal %d  %s !!!", 1231324, "asdfasdfsf");
+ * logDEBUG("fatal %d  %s !!!", 1231324, "asdfasdfsf");
+ * logWARNING("fatal %d  %s !!!", 1231324, "asdfasdfsf");
+ * logNOTICE("fatal %d  %s !!!", 1231324, "asdfasdfsf");
+ * logMONITOR("fatal %d  %s !!!", 1231324, "asdfasdfsf");
+ * logPushNotice("notice %s %d", "asdfasdf", 111);
+ * logPushNotice("notice %s %d", "asdfasdf", 222);
+ * logNOTICE("fatal %d  %s !!!", 1231324, "asdfasdfsf");
+ * logNOTICE("fatal %d  %s !!!", 1231324, "asdfasdfsf");
+ * logAddBasic( array("uid"=>1234, "uname"=>2323 ));
+ * logNOTICE("fatal %d  %s !!!", 1231324, "asdfasdfsf");
+ * var_dump($__log);
+*/
 
-ub_log_pushnotice("notice %s %d", "asdfasdf", 111);
-ub_log_pushnotice("notice %s %d", "asdfasdf", 222);
-UB_LOG_NOTICE("fatal %d  %s !!!", 1231324, "asdfasdfsf");
-UB_LOG_NOTICE("fatal %d  %s !!!", 1231324, "asdfasdfsf");
-
-ub_log_addbasic( array("uid"=>1234, "uname"=>2323 ));
-UB_LOG_NOTICE("fatal %d  %s !!!", 1231324, "asdfasdfsf");
-
-//var_dump($__log);
-
-//
- */
-
-
-
-final class __mc_log
+final class Log
 {
 	const LOG_FATAL   = 1;
 	const LOG_WARNING = 2;
@@ -36,7 +39,7 @@ final class __mc_log
 	const LOG_DEBUG   = 16;
 	const PAGE_SIZE   = 4096;
 	const LOG_SPACE   = "\10";
-	const MONTIR_STR  = ' ---LOG_MONITOR---';
+	const MONTIR_STR  = ' ------';
 
 	static $LOG_NAME = array (
 			self::LOG_FATAL   => 'FATAL',
@@ -48,30 +51,31 @@ final class __mc_log
 			);
 	static $BASIC_FIELD = array (
 			'logid',
-			'reqip',
+			'ip',
 			'uid',
 			'uname',
-			'baiduid',
+			'traceid',
 			'method',
 			'uri'
-			);
+	);
 
 	/**
-	 * log_name 日志名
+	 * log_name 
 	 * 
 	 * @var string
 	 * @access private
 	 */
 	private $log_name   = '';
 	/**
-	 * log_path 正常日志全路径 
+	 * log_path 
 	 * 
 	 * @var string
 	 * @access private
 	 */
 	private $log_path   = '';
+	
 	/**
-	 * wflog_path wf日志全路径 
+	 * wflog_path wf
 	 * 
 	 * @var string
 	 * @access private
@@ -85,7 +89,7 @@ final class __mc_log
 	private $arr_basic  = null;
 
 	/**
-	 * force_flush 是否强制写出
+	 * force_flush 
 	 * 
 	 * @var mixed
 	 * @access private
@@ -93,34 +97,39 @@ final class __mc_log
 	private $force_flush = false;
 
 	/**
-	 * init_pid 初始化时的pid
+	 * init_pid 
 	 * 
 	 * @var int
 	 * @access private
 	 */
 	private $init_pid   = 0;
 
-	function __construct()
+	/**
+	 * destruct 
+	 * when destruct ,flush log to disk
+	 */
+	public  function __destruct()
 	{
+		if ($this->init_pid==posix_getpid_new()) {
+			$this->check_flush_log(true);
+		}
 	}
-
-	function __destruct()
-	{
-		
-			if ($this->init_pid==posix_getpid()) {
-				/* 只在打出当前进程的日志 */
-				$this->check_flush_log(true);
-			}
-		
-	}
-
-	function init($dir, $name, $level, $arr_basic_info, $flush=false)
+	
+	/**
+	 * Initial 
+	 * input dir name level and basic info and flush type
+	 * @param string $dir  log path
+	 * @param string $name log name
+	 * @param int $level level
+	 * @param array $arr_basic_info  basic array
+	 * @param bool $flush true/false
+	 */
+	public  function init($dir, $name, $level, $arr_basic_info, $flush=false)
 	{
 		if (empty($dir) || empty($name)) {
 			return false;
 		}
 
-		/* 使用的为绝对路径 */
 		if ('/'!= $dir{0}) {
 			$dir = realpath($dir);
 		}
@@ -134,12 +143,9 @@ final class __mc_log
 
 		/* set basic info */
 		$this->arr_basic = $arr_basic_info;
-		/* 生成basic info的字符串 */
 		$this->gen_basicinfo();
-		/* 记录初使化进程的id */
-		$this->init_pid = posix_getpid();
+		$this->init_pid = posix_getpid_new();
 		$this->force_flush = $flush;
-		
 		return true;
 	}
 
@@ -152,7 +158,8 @@ final class __mc_log
 	{
 		$this->basic_info = '';
 		foreach (self::$BASIC_FIELD as $key) {
-			if (!empty($this->arr_basic[$key])) {
+			//!empty when the value is 0 then 
+			if (isset($this->arr_basic[$key])) {
 				$this->basic_info .= $this->gen_log_part("$key:".$this->arr_basic[$key]) . " ";
 			}
 		}
@@ -192,6 +199,10 @@ final class __mc_log
 		return;
 	}
 
+	/**
+	 * add basic field
+	 * @param string $arr_basic_info
+	 */
 	public function add_basicinfo($arr_basic_info)
 	{
 		$this->arr_basic = array_merge($this->arr_basic, $arr_basic_info);
@@ -215,16 +226,19 @@ final class __mc_log
 
 		/* log heading */
 		$str = sprintf( "%s: %s: %s * %d", self::$LOG_NAME[$type], date("m-d H:i:s"),
-				$this->log_name, posix_getpid() );
+				$this->log_name, posix_getpid_new() );
 		/* add monitor tag?	*/	
 		if ($type==self::LOG_MONITOR || $type==self::LOG_FATAL) {
 			$str .= self::MONTIR_STR;
 		}
 		/* add basic log */
 		$str .= " " . $this->basic_info;
-		/* add detail log */
-		$str .= " " . vsprintf($format, $arr_data);
-
+		if(!empty($arr_data)){
+			/* add detail log */
+			$str .= " " . vsprintf($format, $arr_data);
+		}else{
+			$str .= " " . $format;
+		}
 		switch ($type) {
 			case self::LOG_MONITOR :
 			case self::LOG_FATAL :
@@ -251,13 +265,13 @@ final class __mc_log
 
 $__log = null;
 
-function __ub_log($type, $arr)
+function writeLog($type, $arr)
 {
 	global $__log;
 	$format = $arr[0];
 	array_shift($arr);
 
-	$pid = posix_getpid();
+	$pid = posix_getpid_new();
 
 	if (!empty($__log[$pid])) {
 		/* shift $type and $format, arr_data left */
@@ -265,43 +279,37 @@ function __ub_log($type, $arr)
 		$log->write_log($type, $format, $arr);
 	} else {
 		/* print out to stderr */
-		$s =  __mc_log::$LOG_NAME[$type] . ' ' . vsprintf($format, $arr) . "\n";
-		echo $s;
-		/*
-		   if (!defined('STDERR')) {
-		   $stderr = fopen('php://stderr', 'w');
-		   fprintf($stderr, $s);
-		   echo $s;
-		   } else {
-		   fprintf(STDERR, $s);
-		   }
-		 */
-	} /* if $__log */
+		if(!empty($format) && !empty($arr))
+		{
+			$s =  Log::$LOG_NAME[$type] . ' ' . @vsprintf($format, $arr) . "\n";
+			echo $s;
+		}
+	}
 }
 
 
 /**
- * ub_log_init Log初始化 
+ * loginit 
  * 
- * @param string $dir      目录名
- * @param string $file     日志名
- * @param interger $level  日志级别 
- * @param array $info      日志基本信息,可以参考__mc_log::$BASIC_FIELD  
- * @param bool  $flush     是否日志直接flush到硬盘,默认会有4K的缓冲
- * @return boolean          true成功;false失败
+ * @param string $dir      path
+ * @param string $file     logname
+ * @param interger $level  log level
+ * @param array $info      log basic info Log::$BASIC_FIELD  
+ * @param bool  $flush     force flus to disk,default 4k buffer
+ * @return boolean          true/false
  */
-function ub_log_init($dir, $file, $level, $info, $flush=false)
+function logInit($dir, $file, $level, $info, $flush=false)
 {
 	global $__log;
 
-	$pid = posix_getpid();
+	$pid = posix_getpid_new();
 
 	if (!empty($__log[$pid]) ) {
 		unset($__log[$pid]);
 	}
 
-	$__log[posix_getpid()] = new __mc_log(); 
-	$log = $__log[posix_getpid()];
+	$__log[posix_getpid_new()] = new Log(); 
+	$log = $__log[posix_getpid_new()];
 	if ($log->init($dir, $file, $level, $info, $flush)) {
 		return true;
 	} else {
@@ -312,102 +320,102 @@ function ub_log_init($dir, $file, $level, $info, $flush=false)
 
 
 /**
- * UB_LOG_DEBUG            DEBUG日志
+ * logDEBUG      
  * 
- * @param string $fmt      格式字符串
+ * @param string $fmt      string formate
  * @param mixed  $arg      data
  * @return void
  */
-function UB_LOG_DEBUG()
+function logDebug()
 {
 	$arg = func_get_args();
-	__ub_log(__mc_log::LOG_DEBUG, $arg );
+	writeLog(Log::LOG_DEBUG, $arg );
 }
 
 
 /**
- * UB_LOG_TRACE            TRACE日志
+ * logTRACE     
  * 
- * @param string $fmt      格式字符串
+ * @param string $fmt      string formate
  * @param mixed  $arg      data
  * @return void
  */
-function UB_LOG_TRACE()
+function logTrace()
 {
 	$arg = func_get_args();
-	__ub_log(__mc_log::LOG_TRACE, $arg );
+	writeLog(Log::LOG_TRACE, $arg );
 }
 
 
 /**
- * UB_LOG_NOTICE           NOTICE日志,一般一次请求只打一条 
- * 
- * @param string $fmt      格式字符串
+ * logNOTICE            
+ * one per request
+ * @param string $fmt      string formate
  * @param mixed  $arg      data
  * @return void
  */
-function UB_LOG_NOTICE()
+function logNotice()
 {
 	$arg = func_get_args();
-	__ub_log(__mc_log::LOG_NOTICE, $arg );
+	writeLog(Log::LOG_NOTICE, $arg );
 }
 
 
 /**
- * UB_LOG_MONITOR          MONITOR日志,主要用于监控
+ * logMONITOR     
  * 
- * @param string $fmt      格式字符串
+ * @param string $fmt     string formate
  * @param mixed  $arg      data
  * @return void
  */
-function UB_LOG_MONITOR()
+function logMonitor()
 {
 	$arg = func_get_args();
-	__ub_log(__mc_log::LOG_MONITOR, $arg );
+	writeLog(Log::LOG_MONITOR, $arg );
 }
 
 
 /**
- * UB_LOG_WARNING          WANRING日志 
+ * logWARNING        
  * 
- * @param string $fmt      格式字符串
+ * @param string $fmt      string formate
  * @param mixed  $arg      data
  * @return void
  */
-function UB_LOG_WARNING()
+function logWARNING()
 {
 	$arg = func_get_args();
-	__ub_log(__mc_log::LOG_WARNING, $arg );
+	writeLog(Log::LOG_WARNING, $arg );
 }
 
 
 /**
- * UB_LOG_FATAL            FATAL日志,会同时打出MONITOR日志的标识 
- * 
- * @param string $fmt      格式字符串
+ * logFATAL            
+ * will show warning logs 
+ * @param string $fmt      string formate
  * @param mixed  $arg      data
  * @return void
  */
-function UB_LOG_FATAL()
+function logFatal()
 {
 	$arg = func_get_args();
-	__ub_log(__mc_log::LOG_FATAL, $arg );
+	writeLog(Log::LOG_FATAL, $arg );
 }
 
 
 /**
- * ub_log_pushnotice       压入NOTICE日志,和UB_LOG_XXX接受的参数相同(不同于ub_log同名函数))  
+ * logpushnotice        
  *                         
- * @param string $fmt      格式字符串
+ * @param string $fmt      string formate
  * @param mixed  $arg      data
  * @return void
  */
-function ub_log_pushnotice()
+function logPushNotice()
 {
 	global $__log;
 	$arr = func_get_args();
 
-	$pid = posix_getpid();
+	$pid = posix_getpid_new();
 
 	if (!empty($__log[$pid])) {
 		$log = $__log[$pid];
@@ -421,16 +429,16 @@ function ub_log_pushnotice()
 }
 
 /**
- * ub_log_clearnotice       清除目前的NOTICE日志,每次调用UB_LOG_NOTICE都会调用本函数
+ * logclearnotice   
  * 
  * @return void
  */
-function ub_log_clearnotice()
+function logClearNotice()
 {
 	global $__log;
 	$arr = func_get_args();
 
-	$pid = posix_getpid();
+	$pid = posix_getpid_new();
 
 	if (!empty($__log[$pid])) {
 		$log = $__log[$pid];
@@ -442,17 +450,17 @@ function ub_log_clearnotice()
 
 
 /**
- * ub_log_addbasic       添加日志的基本信息,字段可以参考 BASIC_FIELD 
+ * logaddbasic       
  * 
- * @param mixed $arr_basic 基本信息的数组 
+ * @param mixed $arr_basic array of basic array 
  * @return void
  */
-function ub_log_addbasic($arr_basic)
+function logAddBasic($arr_basic)
 {
 	global $__log;
 	$arr = func_get_args();
 
-	$pid = posix_getpid();
+	$pid = posix_getpid_new();
 
 	if (!empty($__log[$pid])) {
 		$log = $__log[$pid];

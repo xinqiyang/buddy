@@ -50,26 +50,45 @@ class MMysql {
     protected $_map = array();
     protected $config = array();
     protected $autoCheckFields = true;
+    
+    private static $mysql ;
+    
+    public static function instance($table,$connection='mysql')
+    {
+    	//set default value of params 
+    	$table = empty($table) ? 'account' : $table;
+    	$connection = empty($connection) ? 'mysql' : $connection;
+    	if(!isset(self::$mysql[$table.$connection]))
+    	{
+    		self::$mysql[$table.$connection] = new self($table,$connection);
+    	}
+    	return self::$mysql[$table.$connection];
+    }
 
     /**
      * construct 
      * @param string $name tablename
      * @param array $connection connection
      */
-    public function __construct($name='', $connection) {
-        $this->config = $connection;
+    private function __construct($name, $connection) {
+        $this->config = C('mysql.'.$connection);
+        
         $this->_initialize();
         if (!empty($name)) {
             $this->name = $name;
         } elseif (empty($this->name)) {
             $this->name = $this->getModelName();
         }
-        //TODO:处理好这些事情，不直接去连数据库
+        //TODO:need repair
         $this->db = Db::getInstance($this->config);
-        $this->tablePrefix = $this->tablePrefix ? $this->tablePrefix : $connection['db_prefix'];
+       
+        $this->tablePrefix = $this->tablePrefix ? $this->tablePrefix : $this->config['db_prefix'];
+        //
         $this->tableSuffix = $this->tableSuffix ? $this->tableSuffix : '';
-        if (!empty($this->name) && $this->autoCheckFields)
+        //this  && $this->autoCheckFields
+        if (!empty($this->name)){
             $this->_checkTableInfo();
+        }
     }
 
     protected function _checkTableInfo() {
@@ -77,9 +96,10 @@ class MMysql {
             $config = $this->config;
             if ($config['fields_cache']) {
                 $this->fields = self::fileSave('_fields/' . $this->name);
-                if (!$this->fields)
+                if (empty($this->fields))
                 {
                     $this->flush();
+                    
                 }
             }else {
                 $this->flush();
@@ -109,6 +129,10 @@ class MMysql {
         static $_cache = array();
         $config = $this->config;
         $path = empty($path) ? $config['fields_cache_path'] : $path;
+        //logDebug($path);
+        if(!is_dir($path)){
+        	@mkdir($path);
+        }
         $filename = $path . $name . '.php';
         if ('' !== $value) {
             if (is_null($value)) {
@@ -168,8 +192,14 @@ class MMysql {
         
     }
 
+    /**
+     * facade of data action
+     * Enter description here ...
+     * @param unknown_type $data
+     */
     protected function _facade($data) {
         if (!empty($this->fields)) {
+        	
             foreach ($data as $key => $val) {
                 if (!in_array($key, $this->fields, true)) {
                     unset($data[$key]);
@@ -203,12 +233,15 @@ class MMysql {
                 return false;
             }
         }
+        
         $options = $this->_parseOptions($options);
         $data = $this->_facade($data);
         if (false === $this->_before_insert($data, $options)) {
             return false;
         }
+        
         $result = $this->db->insert($data, $options, $replace);
+        
         if (false !== $result) {
             $insertId = $this->getLastInsID();
             if ($insertId) {
@@ -662,6 +695,16 @@ class MMysql {
             return false;
         }
     }
+    
+	public function bindQuery($sql,$array) {
+        if (!empty($sql) && !empty($array)) {
+            if (strpos($sql, '__TABLE__'))
+                $sql = str_replace('__TABLE__', $this->getTableName(), $sql);
+            return $this->db->bindQuery($sql,$array);
+        }else {
+            return false;
+        }
+    }
 
     public function execute($sql) {
         if (!empty($sql)) {
@@ -692,14 +735,15 @@ class MMysql {
         return $this->name;
     }
 
+    /**
+     * get table name error
+     * Enter description here ...
+     */
     public function getTableName() {
         if (empty($this->trueTableName)) {
             $tableName = !empty($this->tablePrefix) ? $this->tablePrefix : '';
-            if (!empty($this->tableName)) {
-                $tableName .= $this->tableName;
-            } else {
-                $tableName .= model_parse_name($this->name);
-            }
+            $tableName .= $this->name;
+         
             $tableName .= ! empty($this->tableSuffix) ? $this->tableSuffix : '';
             if (!empty($this->dbName))
                 $tableName = $this->dbName . '.' . $tableName;
@@ -888,6 +932,7 @@ class Db {
     }
 
     protected function parseSet($data) {
+        $set = array();
         foreach ($data as $key => $val) {
             $value = $this->parseValue($val);
             if (is_scalar($value))
@@ -1075,13 +1120,16 @@ class Db {
     }
 
     public function insert($data, $options=array(), $replace=false) {
+    	
         foreach ($data as $key => $val) {
             $value = $this->parseValue($val);
+            //var_dump($value);die;
             if (is_scalar($value)) {
                 $values[] = $value;
                 $fields[] = $this->addSpecialChar($key);
             }
         }
+        
         $sql = ($replace ? 'REPLACE' : 'INSERT') . ' INTO ' . $this->parseTable($options['table']) . ' (' . implode(',', $fields) . ') VALUES (' . implode(',', $values) . ')';
         $sql .= $this->parseLock(isset($options['lock']) ? $options['lock'] : false);
         return $this->execute($sql);
@@ -1152,6 +1200,9 @@ class Db {
                             $this->parseLimit(isset($options['limit']) ? $options['limit'] : '')
                         ), $this->selectSql);
         $sql .= $this->parseLock(isset($options['lock']) ? $options['lock'] : false);
+        if(isset($options['keyid'])){
+        	return $this->queryKeyID($sql);
+        }
         return $this->query($sql);
     }
 
@@ -1215,6 +1266,77 @@ class DbMysql extends Db {
         }
         return $this->linkID[$linkNum];
     }
+    
+    /**
+     * Prepare for SQL
+     * @param string $strSql
+     * @param array $arrData
+     */
+	private  function _prepare($strSql='', $arrData = array()) {
+        if (!empty($arrData) && $strSql) {
+            $arrSql = preg_split('/(:[a-zA-Z0-9_]+)/',$strSql, -1, PREG_SPLIT_DELIM_CAPTURE);
+            $strResSql = '';
+            foreach ($arrSql as $key) {
+                $k = substr($key,1);
+                if (isset($arrData[$k])) {
+                    if(is_string($arrData[$k])) {
+                        $strResSql .= "'".$this->_objLinkID->real_escape_string($arrData[$k])."'";
+                    } elseif (is_array($arrData[$k])){
+                        $strResSql .= "'".$this->_prepareIn($arrData[$k])."'";
+                    }else{ 
+                    	$strResSql .= $arrData[$k];
+                    }
+                } else {
+                    $strResSql .= $key;
+                }
+            }
+        } else {
+            $strResSql = $strSql;
+        }
+        return $strResSql;
+    }
+    
+ 	/**
+     * 
+     * Prepare for in
+     * @param array $arrData
+     */
+    private function _prepareIn($arrData){
+        foreach ($arrData as $key => $value){
+            if (is_string($value)) {
+                $arrData[$key] =  $this->_objLinkID->real_escape_string($value);
+            }
+        }
+        return implode("','",array_values($arrData)); 
+    }
+    
+    
+    /**
+     * bind query
+     * use a sql and arry ,auto bind then query
+     * $db->bindQuery("SELECT * FROM sz_table WHRER id=:id",array('id'=>'123'));
+     * @param string $str
+     * @param array $arrBind
+     */
+	public function bindQuery($str, $arrBind=array()) {
+        $this->initConnect(false);
+        if (!$this->_linkID)
+            return false;
+        $this->queryStr = $this->_prepare($str, $arrBind);
+        if ($this->queryID) {
+            $this->free();
+        }
+        $this->queryID = mysql_query($str, $this->_linkID);
+        if (false === $this->queryID) {
+            $this->error();
+            return false;
+        } else {
+            $this->numRows = mysql_num_rows($this->queryID);
+            return $this->getAll();
+        }
+    }
+    
+    
 
     public function free() {
         @mysql_free_result($this->queryID);
@@ -1236,6 +1358,24 @@ class DbMysql extends Db {
         } else {
             $this->numRows = mysql_num_rows($this->queryID);
             return $this->getAll();
+        }
+    }
+    
+	public function queryKeyID($str) {
+        $this->initConnect(false);
+        if (!$this->_linkID)
+            return false;
+        $this->queryStr = $str;
+        if ($this->queryID) {
+            $this->free();
+        }
+        $this->queryID = mysql_query($str, $this->_linkID);
+        if (false === $this->queryID) {
+            $this->error();
+            return false;
+        } else {
+            $this->numRows = mysql_num_rows($this->queryID);
+            return $this->getKeyIDAll();
         }
     }
 
@@ -1296,6 +1436,24 @@ class DbMysql extends Db {
         if ($this->numRows > 0) {
             while ($row = mysql_fetch_assoc($this->queryID)) {
                 $result[] = $row;
+            }
+            mysql_data_seek($this->queryID, 0);
+        }
+        return $result;
+    }
+    
+    /**
+     * get the id as key of the dataset
+     */
+	private function getKeyIDAll() {
+        $result = array();
+        if ($this->numRows > 0) {
+            while ($row = mysql_fetch_assoc($this->queryID)) {
+            	if(isset($row['id'])){
+                	$result[$row['id']] = $row;
+            	}else{
+            		$result[] = $row;
+            	}
             }
             mysql_data_seek($this->queryID, 0);
         }

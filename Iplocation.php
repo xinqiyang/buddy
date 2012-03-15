@@ -47,27 +47,15 @@ class Iplocation
      */
     private $totalip;
     
-    //
-    private static  $_self;
-    
-    public static function instance($filename = "QQWry.Dat")
-    {
-    	if(!self::$_self)
-    	{
-    		self::$_self = new self($filename);
-    	}
-    	return self::$_self;
-    }
-
     /**
      * construct
      *
      * @param string $filename
      * @return IpLocation
      */
-    private function __construct($filename) {
+    public function __construct($filename='QQWry.Dat') {
         $this->fp = 0;
-        if (($this->fp = fopen(dirname(__FILE__).'/'.$filename, 'rb')) !== false) {
+        if (($this->fp = fopen(dirname(__FILE__).DIRECTORY_SEPARATOR.'Resource/'.$filename, 'rb')) !== false) {
             $this->firstip = $this->getlong();
             $this->lastip = $this->getlong();
             $this->totalip = ($this->lastip - $this->firstip) / 7;
@@ -155,7 +143,7 @@ class Iplocation
      */
     public function getlocation($ip='') {
         if (!$this->fp) return null;          
-		if(empty($ip)) $ip = $this->get_client_ip();
+		if(empty($ip)) $ip = getip();
         $location['ip'] = gethostbyname($ip);  
         $ip = $this->packip($location['ip']); 
         $l = 0;                         
@@ -226,11 +214,12 @@ class Iplocation
         //change gbk to utf8
         $location['country'] = mb_convert_encoding($location['country'], 'UTF8','GBK');
 		$location['area'] = mb_convert_encoding($location['area'], 'UTF8','GBK');
-		//replace the province and city
-		$location['country'] = str_replace('省', ' ', $location['country']);
-        $location['country'] = trim(str_replace('市', ' ', $location['country']));
+		
 		return $location;
     }
+    
+   
+    
 
     /**
      * excute complete then close file handler
@@ -243,18 +232,5 @@ class Iplocation
         $this->fp = 0;
     }
 
-	function get_client_ip(){
-	   if (getenv("HTTP_CLIENT_IP") && strcasecmp(getenv("HTTP_CLIENT_IP"), "unknown"))
-		   $ip = getenv("HTTP_CLIENT_IP");
-	   else if (getenv("HTTP_X_FORWARDED_FOR") && strcasecmp(getenv("HTTP_X_FORWARDED_FOR"), "unknown"))
-		   $ip = getenv("HTTP_X_FORWARDED_FOR");
-	   else if (getenv("REMOTE_ADDR") && strcasecmp(getenv("REMOTE_ADDR"), "unknown"))
-		   $ip = getenv("REMOTE_ADDR");
-	   else if (isset($_SERVER['REMOTE_ADDR']) && $_SERVER['REMOTE_ADDR'] && strcasecmp($_SERVER['REMOTE_ADDR'], "unknown"))
-		   $ip = $_SERVER['REMOTE_ADDR'];
-	   else
-		   $ip = "unknown";
-	   return($ip);
-	}
+	
 }
-?>

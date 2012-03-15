@@ -1,8 +1,8 @@
 <?php
 // +----------------------------------------------------------------------
-// | WoShiMaiJia Projcet 
+// | Buddy Framework 
 // +----------------------------------------------------------------------
-// | Copyright (c) 2010-2011 http://woshimaijia.com All rights reserved.
+// | Copyright (c) 2011 http://buddy.woshimaijia.com All rights reserved.
 // +----------------------------------------------------------------------
 // | Licensed ( http://www.apache.org/licenses/LICENSE-2.0 )
 // +----------------------------------------------------------------------
@@ -14,10 +14,11 @@
  */
 //Load core file list
 return array(
-	BUDDY_PATH.'/Log.php', //log
-	BUDDY_PATH.'/Defines.php', //sys tem define
-	BUDDY_PATH.'/Base.php', //basic class
-	BUDDY_PATH.'/App.php',  //APP class
-	BUDDY_PATH.'/Action.php', // action class
-	
+	BUDDY_PATH.DIRECTORY_SEPARATOR.'Defines.php', //system define	
+	BUDDY_PATH.DIRECTORY_SEPARATOR.'Log.php', //log
+	BUDDY_PATH.DIRECTORY_SEPARATOR.'Base.php', //basic class
+	BUDDY_PATH.DIRECTORY_SEPARATOR.'App.php',  //APP class
+	BUDDY_PATH.DIRECTORY_SEPARATOR.'Action.php', // action class
+        //加载函数的别名文件
+        SERVICE_PATH.DIRECTORY_SEPARATOR.'Alias.php', // alias functions 
 );
