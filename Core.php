@@ -19,6 +19,6 @@ return array(
 	BUDDY_PATH.DIRECTORY_SEPARATOR.'Base.php', //basic class
 	BUDDY_PATH.DIRECTORY_SEPARATOR.'App.php',  //APP class
 	BUDDY_PATH.DIRECTORY_SEPARATOR.'Action.php', // action class
-        //加载函数的别名文件
+        //@TODO:加载函数的别名文件，这里需要移除
         SERVICE_PATH.DIRECTORY_SEPARATOR.'Alias.php', // alias functions 
 );

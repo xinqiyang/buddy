@@ -1,0 +1,7 @@
+Buddy Framework by xinqiyang
+
+add rss writer
+
+
+规定logic中函数的返回值只能返回true/false/primaryid/array
+规定service中的函数返回格式为 array('code'=>'','data'=>'mix');

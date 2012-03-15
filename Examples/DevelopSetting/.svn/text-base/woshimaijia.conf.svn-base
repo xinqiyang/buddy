@@ -1,0 +1,182 @@
+server {
+      listen       80;
+      index index index.php;
+      server_name tools.dev.woshimaijia.com;
+      location / { 
+	  include fastcgi_params;
+	  fastcgi_intercept_errors on;
+          fastcgi_pass   127.0.0.1:9000;
+          fastcgi_index  index.php;
+          fastcgi_param  SCRIPT_FILENAME  /home/xinqiyang/wwwroot/woshimaijia/trunk/src/php/Presentation/Tools/Public/$fastcgi_script_name;
+          #include fastcgi.conf;
+          #client_max_body_size 8m; 
+          root   /home/xinqiyang/wwwroot/woshimaijia/trunk/src/php/Presentation/Tools/Public;
+          if (!-e $request_filename){
+              rewrite ^/(.*) /index.php/$1 break;
+          }   
+      }
+      
+  }
+
+server {
+      listen       80;
+      index index index.php;
+      server_name web.dev.woshimaijia.com;
+      location / { 
+	  include fastcgi_params;
+	  fastcgi_intercept_errors on;
+          fastcgi_pass   127.0.0.1:9000;
+          fastcgi_index  index.php;
+          fastcgi_param  SCRIPT_FILENAME  /home/xinqiyang/wwwroot/woshimaijia/trunk/src/php/Presentation/Web/Public/$fastcgi_script_name;
+          #include fastcgi.conf;
+          #client_max_body_size 8m; 
+          root   /home/xinqiyang/wwwroot/woshimaijia/trunk/src/php/Presentation/Web/Public;
+          if (!-e $request_filename){
+              rewrite ^/(.*) /index.php/$1 break;
+          }   
+      }
+      
+  }
+
+server {
+      listen       80;
+      index index index.php;
+      server_name wap.dev.woshimaijia.com;
+      location / { 
+	  include fastcgi_params;
+	  fastcgi_intercept_errors on;
+          fastcgi_pass   127.0.0.1:9000;
+          fastcgi_index  index.php;
+          fastcgi_param  SCRIPT_FILENAME  /home/xinqiyang/wwwroot/woshimaijia/trunk/src/php/Presentation/Wap/Public/$fastcgi_script_name;
+          #include fastcgi.conf;
+          #client_max_body_size 8m; 
+          root   /home/xinqiyang/wwwroot/woshimaijia/trunk/src/php/Presentation/Wap/Public;
+          if (!-e $request_filename){
+              rewrite ^/(.*) /index.php/$1 break;
+          }   
+      }
+      
+  }
+
+server {
+      listen       80;
+      index index index.php;
+      server_name api.dev.woshimaijia.com;
+      location / { 
+	  include fastcgi_params;
+	  fastcgi_intercept_errors on;
+          fastcgi_pass   127.0.0.1:9000;
+          fastcgi_index  index.php;
+          fastcgi_param  SCRIPT_FILENAME  /home/xinqiyang/wwwroot/woshimaijia/trunk/src/php/Presentation/Api/Public/$fastcgi_script_name;
+          #include fastcgi.conf;
+          #client_max_body_size 8m; 
+          root   /home/xinqiyang/wwwroot/woshimaijia/trunk/src/php/Presentation/Api/Public;
+          if (!-e $request_filename){
+              rewrite ^/(.*) /index.php/$1 break;
+          }   
+      }
+      
+  }
+
+server {
+      listen       80;
+      index index index.php;
+      server_name mis.dev.woshimaijia.com;
+      location / { 
+	  include fastcgi_params;
+	  fastcgi_intercept_errors on;
+          fastcgi_pass   127.0.0.1:9000;
+          fastcgi_index  index.php;
+          fastcgi_param  SCRIPT_FILENAME  /home/xinqiyang/wwwroot/woshimaijia/trunk/src/php/Presentation/Mis/Public/$fastcgi_script_name;
+          #include fastcgi.conf;
+          #client_max_body_size 8m; 
+          root   /home/xinqiyang/wwwroot/woshimaijia/trunk/src/php/Presentation/Mis/Public;
+          if (!-e $request_filename){
+              rewrite ^/(.*) /index.php/$1 break;
+          }   
+      }
+  }
+
+
+server
+        {
+                listen       80;
+                server_name res.dev.woshimaijia.com;
+                index index.html index.htm index.php default.html default.htm default.php;
+                root  /home/xinqiyang/wwwroot/woshimaijia/trunk/src/php/Presentation/Resource;
+                error_page 404 = /404.html;
+                location ~ .*\.(php|php5)?$
+                        {
+                                fastcgi_pass  127.0.0.1:9000;
+                                fastcgi_index index.php;
+                                include fastcgi.conf;
+                        }
+
+                location ~ .*\.(gif|jpg|jpeg|png|bmp|swf)$
+                        {
+                                expires      30d;
+                        }
+
+                location ~ .*\.(js|css)?$
+                        {
+                                expires      12h;
+                        }
+
+                log_format  res.dev.woshimaijia.com  '$remote_addr - $remote_user [$time_local] $request '
+             '$status $body_bytes_sent $http_referer '
+             '$http_user_agent $http_x_forwarded_for';
+                access_log  /home/xinqiyang/wwwlogs/res.dev.woshimaijia.com.log  res.dev.woshimaijia.com;
+        }
+
+server
+        {
+                listen       80;
+                server_name img.dev.woshimaijia.com;
+                index index.html index.htm index.php default.html default.htm default.php;
+                root  /home/xinqiyang/wwwroot/woshimaijia/trunk/src/php/Presentation/Images;
+                error_page 404 = /404.html;
+                location ~ .*\.(php|php5)?$
+                        {
+                                fastcgi_pass  127.0.0.1:9000;
+                                fastcgi_index index.php;
+                                include fastcgi.conf;
+                        }
+
+                location ~ .*\.(gif|jpg|jpeg|png|bmp|swf)$
+                        {
+                                expires      30d;
+                        }
+
+                location ~ .*\.(js|css)?$
+                        {
+                                expires      12h;
+                        }
+
+                log_format  img.dev.woshimaijia.com  '$remote_addr - $remote_user [$time_local] $request '
+             '$status $body_bytes_sent $http_referer '
+             '$http_user_agent $http_x_forwarded_for';
+                access_log  /home/xinqiyang/wwwlogs/img.dev.woshimaijia.com.log  img.dev.woshimaijia.com;
+        }
+
+
+
+
+server {
+      listen       80;
+      index index index.php;
+      server_name dev.dev.woshimaijia.com;
+      location / { 
+	  include fastcgi_params;
+	  fastcgi_intercept_errors on;
+          fastcgi_pass   127.0.0.1:9000;
+          fastcgi_index  index.php;
+          fastcgi_param  SCRIPT_FILENAME  /home/xinqiyang/wwwroot/woshimaijia/trunk/src/php/Presentation/Dev/Public/$fastcgi_script_name;
+          #include fastcgi.conf;
+          #client_max_body_size 8m; 
+          root   /home/xinqiyang/wwwroot/woshimaijia/trunk/src/php/Presentation/Dev/Public;
+          if (!-e $request_filename){
+              rewrite ^/(.*) /index.php/$1 break;
+          }   
+      }
+      
+  }
